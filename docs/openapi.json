@@ -1,0 +1,805 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Livraria API",
+    "version": "1.1.0",
+    "description": "Catálogo de livros e autores com comentários, JWT e perfis USER/ADMIN. Projeto acadêmico com persistência local em database.txt. Faça login e cole somente o token em Authorize. O JWT expira em uma hora. A API atual não oferece paginação, filtros, refresh token ou logout. Limitação existente: o cadastro público aceita role; não utilizar esta versão em produção."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Mesmo servidor da API"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Autenticação",
+      "description": "Cadastro e obtenção de JWT."
+    },
+    {
+      "name": "Autores",
+      "description": "Consulta pública e criação exclusiva de ADMIN."
+    },
+    {
+      "name": "Livros",
+      "description": "Catálogo público e criação exclusiva de ADMIN."
+    },
+    {
+      "name": "Comentários",
+      "description": "Inclusão por usuários autenticados."
+    }
+  ],
+  "security": [],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token retornado por POST /api/v1/auth/login; cole sem o prefixo Bearer."
+      }
+    },
+    "schemas": {
+      "Erro": {
+        "type": "object",
+        "properties": {
+          "erro": {
+            "type": "string",
+            "example": "Mensagem de erro da API."
+          }
+        },
+        "required": [
+          "erro"
+        ]
+      },
+      "Registro": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "example": "Leitor de Exemplo"
+          },
+          "email": {
+            "type": "string",
+            "example": "leitor@example.com"
+          },
+          "senha": {
+            "type": "string",
+            "writeOnly": true,
+            "example": "SenhaSomenteExemplo123!"
+          },
+          "role": {
+            "type": "string",
+            "default": "USER",
+            "example": "USER",
+            "description": "Opcional. A implementação atual converte para maiúsculas e aceita o valor informado, inclusive ADMIN. Limitação de segurança do projeto base."
+          }
+        },
+        "required": [
+          "nome",
+          "email",
+          "senha"
+        ]
+      },
+      "Usuario": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 12345
+          },
+          "nome": {
+            "type": "string",
+            "example": "Leitor de Exemplo"
+          },
+          "email": {
+            "type": "string",
+            "example": "leitor@example.com"
+          },
+          "role": {
+            "type": "string",
+            "example": "USER"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "email",
+          "role"
+        ]
+      },
+      "Login": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "leitor@example.com"
+          },
+          "senha": {
+            "type": "string",
+            "writeOnly": true,
+            "example": "SenhaSomenteExemplo123!"
+          }
+        },
+        "required": [
+          "email",
+          "senha"
+        ]
+      },
+      "LoginResposta": {
+        "type": "object",
+        "properties": {
+          "usuario": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 12345
+              },
+              "nome": {
+                "type": "string",
+                "example": "Leitor de Exemplo"
+              },
+              "role": {
+                "type": "string",
+                "example": "USER"
+              }
+            },
+            "required": [
+              "id",
+              "nome",
+              "role"
+            ]
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT assinado pelo servidor, válido por uma hora."
+          }
+        },
+        "required": [
+          "usuario",
+          "token"
+        ]
+      },
+      "NovoAutor": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "example": "Autora de Exemplo"
+          },
+          "nacionalidade": {
+            "type": "string",
+            "default": "Não informada",
+            "example": "Brasileira"
+          }
+        },
+        "required": [
+          "nome"
+        ]
+      },
+      "Autor": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 12345
+          },
+          "nome": {
+            "type": "string",
+            "example": "Autora de Exemplo"
+          },
+          "nacionalidade": {
+            "type": "string",
+            "example": "Brasileira"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "nacionalidade"
+        ]
+      },
+      "NovoLivro": {
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "example": "Livro de Exemplo"
+          },
+          "ano": {
+            "type": "integer",
+            "example": 2026,
+            "description": "Opcional; quando omitido ou igual a zero, usa o ano atual."
+          },
+          "autor_id": {
+            "type": "integer",
+            "example": 1,
+            "description": "Identificador de um autor existente."
+          }
+        },
+        "required": [
+          "titulo",
+          "autor_id"
+        ]
+      },
+      "Comentario": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 12346
+          },
+          "autor_nome": {
+            "type": "string",
+            "example": "Leitor de Exemplo"
+          },
+          "texto": {
+            "type": "string",
+            "example": "Leitura recomendada."
+          }
+        },
+        "required": [
+          "id",
+          "autor_nome",
+          "texto"
+        ]
+      },
+      "Livro": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 12347
+          },
+          "titulo": {
+            "type": "string",
+            "example": "Livro de Exemplo"
+          },
+          "ano": {
+            "type": "integer",
+            "example": 2026
+          },
+          "autor_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "comentarios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Comentario"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "ano",
+          "autor_id",
+          "comentarios"
+        ]
+      },
+      "LivroConsulta": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Livro"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "autor_nome": {
+                "type": "string",
+                "example": "Autora de Exemplo"
+              }
+            },
+            "required": [
+              "autor_nome"
+            ]
+          }
+        ]
+      },
+      "NovoComentario": {
+        "type": "object",
+        "properties": {
+          "texto": {
+            "type": "string",
+            "example": "Leitura recomendada."
+          }
+        },
+        "required": [
+          "texto"
+        ]
+      }
+    },
+    "parameters": {
+      "LivroId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Identificador do livro.",
+        "schema": {
+          "type": "integer"
+        },
+        "example": 1
+      }
+    },
+    "responses": {
+      "NaoAutenticado": {
+        "description": "Token ausente, inválido ou expirado.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "examples": {
+              "ausente": {
+                "value": {
+                  "erro": "Token de autenticação não fornecido."
+                }
+              },
+              "invalido": {
+                "value": {
+                  "erro": "Token inválido ou expirado."
+                }
+              }
+            }
+          }
+        }
+      },
+      "Proibido": {
+        "description": "Usuário autenticado sem perfil ADMIN.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "erro": "Acesso proibido: privilégio de ADMIN exigido."
+            }
+          }
+        }
+      },
+      "ErroInterno": {
+        "description": "Falha inesperada da aplicação; a versão atual retorna { erro: mensagem }.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "erro": "Ocorreu um erro interno no servidor."
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/livros": {
+      "get": {
+        "summary": "Listar livros",
+        "tags": [
+          "Livros"
+        ],
+        "operationId": "Listarlivros",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LivroConsulta"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErroInterno"
+          }
+        },
+        "description": "Consulta pública sem paginação ou filtros. Cada livro inclui autor_nome e comentarios."
+      },
+      "post": {
+        "summary": "Cadastrar livro",
+        "tags": [
+          "Livros"
+        ],
+        "operationId": "Cadastrarlivro",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Livro"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O título e o autor_id são obrigatórios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "O título e o autor_id são obrigatórios."
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/NaoAutenticado"
+          },
+          "403": {
+            "$ref": "#/components/responses/Proibido"
+          },
+          "404": {
+            "description": "O autor informado não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "O autor informado não existe."
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErroInterno"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoLivro"
+              }
+            }
+          }
+        },
+        "description": "Exige ADMIN e autor previamente cadastrado. A criação retorna comentarios vazio e não inclui autor_nome; esse campo é acrescentado nas consultas."
+      }
+    },
+    "/api/v1/livros/{id}": {
+      "get": {
+        "summary": "Consultar livro",
+        "tags": [
+          "Livros"
+        ],
+        "operationId": "Consultarlivro",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivroConsulta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Livro não localizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Livro não localizado."
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErroInterno"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LivroId"
+          }
+        ]
+      }
+    },
+    "/api/v1/livros/{id}/comentarios": {
+      "post": {
+        "summary": "Adicionar comentário",
+        "tags": [
+          "Comentários"
+        ],
+        "operationId": "Adicionarcomentario",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comentario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O texto do comentário não pode estar vazio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "O texto do comentário não pode estar vazio."
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/NaoAutenticado"
+          },
+          "404": {
+            "description": "Livro não localizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Livro não localizado."
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErroInterno"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoComentario"
+              }
+            }
+          }
+        },
+        "description": "USER ou ADMIN autenticado. autor_nome vem do JWT, não do corpo da requisição. Retorna somente o comentário criado.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LivroId"
+          }
+        ]
+      }
+    },
+    "/api/v1/autores": {
+      "get": {
+        "summary": "Listar autores",
+        "tags": [
+          "Autores"
+        ],
+        "operationId": "Listarautores",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Autor"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErroInterno"
+          }
+        },
+        "description": "Consulta pública; retorna um array, inclusive vazio. Sem paginação ou filtros."
+      },
+      "post": {
+        "summary": "Cadastrar autor",
+        "tags": [
+          "Autores"
+        ],
+        "operationId": "Cadastrarautor",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Autor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O nome do autor é obrigatório.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "O nome do autor é obrigatório."
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/NaoAutenticado"
+          },
+          "403": {
+            "$ref": "#/components/responses/Proibido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErroInterno"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoAutor"
+              }
+            }
+          }
+        },
+        "description": "Exige ADMIN. Remove espaços das extremidades do nome. Nacionalidade omitida recebe Não informada."
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "Cadastrar usuário",
+        "tags": [
+          "Autenticação"
+        ],
+        "operationId": "Cadastrarusuario",
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Campos obrigatórios ausentes: nome, email ou senha.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Campos obrigatórios ausentes: nome, email ou senha."
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "E-mail já cadastrado no sistema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "E-mail já cadastrado no sistema."
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErroInterno"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Registro"
+              }
+            }
+          }
+        },
+        "description": "Retorna o usuário sem senha_hash. O cadastro atual aceita role no corpo; trata-se de uma limitação do projeto base, não de um fluxo seguro de provisionamento de ADMIN."
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Autenticar usuário",
+        "tags": [
+          "Autenticação"
+        ],
+        "operationId": "Autenticarusuario",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResposta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "E-mail e senha são obrigatórios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "E-mail e senha são obrigatórios."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciais inválidas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Credenciais inválidas."
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErroInterno"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        },
+        "description": "Copie o token da resposta para Authorize, sem escrever Bearer. Expira em 1 hora. Não existe refresh token nesta API."
+      }
+    }
+  }
+}
