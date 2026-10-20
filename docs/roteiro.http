@@ -1,0 +1,53 @@
+@baseUrl = http://localhost:3000
+@token = COLE_AQUI_O_TOKEN_RETORNADO_NO_LOGIN
+
+### 1. Cadastro fictício (USER)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{"nome":"Leitor de Exemplo","email":"leitor@example.com","senha":"SenhaSomenteExemplo123!"}
+
+### 2. Login; copie o token para a variável acima
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{"email":"leitor@example.com","senha":"SenhaSomenteExemplo123!"}
+
+### 3. Catálogo público
+GET {{baseUrl}}/api/v1/livros
+
+### 4. Detalhes
+GET {{baseUrl}}/api/v1/livros/1
+
+### 5. Autores públicos
+GET {{baseUrl}}/api/v1/autores
+
+### 6. Comentário (USER ou ADMIN)
+POST {{baseUrl}}/api/v1/livros/1/comentarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"texto":"Leitura recomendada."}
+
+### 7. Criação de autor (requer token de ADMIN; USER recebe 403)
+POST {{baseUrl}}/api/v1/autores
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"nome":"Autora de Exemplo","nacionalidade":"Brasileira"}
+
+### 8. Criação de livro (requer token de ADMIN e autor existente)
+POST {{baseUrl}}/api/v1/livros
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"titulo":"Livro de Exemplo","ano":2026,"autor_id":1}
+
+### 9. Falta de autenticação (401)
+POST {{baseUrl}}/api/v1/autores
+Content-Type: application/json
+
+{"nome":"Autora de Exemplo"}
+
+### 10. Recurso inexistente (404)
+GET {{baseUrl}}/api/v1/livros/-1
