@@ -1,14 +1,14 @@
-# 📚 Livraria API - Segurança com JWT e RBAC
+# Livraria API
 
-Esta é uma API RESTful de Livros e Autores desenvolvida com **Clean Architecture**. O foco principal deste projeto é a implementação de uma camada completa de segurança.
+API REST para gerenciamento de livros, autores e comentários, com autenticação JWT e controle de acesso por perfil (RBAC). O projeto utiliza camadas de rotas, controladores, serviços e repositórios, com persistência local em arquivo JSON.
 
-## 🛡️ Funcionalidades de Segurança Implementadas
+## Autenticação e controle de acesso
 
 - **Armazenamento Seguro de Credenciais:** As senhas dos usuários são protegidas usando hashes criptográficos com **BCrypt** (aplicando Salt + Work Factor).
 - **Autenticação Stateless:** Emissão e validação de tokens **JWT** (JSON Web Token). O acesso às rotas protegidas requer o cabeçalho `Authorization: Bearer <token>`.
 - **Controle de Acesso Baseado em Perfis (RBAC):** Proteção de endpoints utilizando Middlewares que distinguem usuários comuns (`USER`) de administradores (`ADMIN`).
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias
 
 - [Node.js](https://nodejs.org/)
 - [Express](https://expressjs.com/)
@@ -16,7 +16,9 @@ Esta é uma API RESTful de Livros e Autores desenvolvida com **Clean Architectur
 - [JSON Web Token (JWT)](https://jwt.io/)
 - Banco de Dados local baseado em arquivo JSON (`database.txt`)
 
-## 🚀 Como executar o projeto
+## Execução local
+
+Requer Node.js 20 ou superior.
 
 1. Clone este repositório:
    ```bash
@@ -28,15 +30,15 @@ Esta é uma API RESTful de Livros e Autores desenvolvida com **Clean Architectur
    ```
 3. Instale as dependências:
    ```bash
-   npm install
+   npm ci
    ```
 4. Inicie o servidor:
    ```bash
-   node server.js
+   npm start
    ```
 A API estará rodando em `http://localhost:3000`.
 
-## 🔑 Credenciais de Teste
+## Usuários de teste
 
 Em bancos usados pelo script manual `test_e2e.js`, os seguintes usuários fictícios podem existir. Um clone limpo não garante essas credenciais; use o cadastro/login da API para criar um usuário de teste. Os novos testes automatizados usam dados isolados.
 
@@ -45,24 +47,20 @@ Em bancos usados pelo script manual `test_e2e.js`, os seguintes usuários fictí
 | **ADMIN** | `admintest@livraria.com` | `123` | Pode cadastrar livros e autores, além de comentar. |
 | **USER** | `usertest@livraria.com` | `123` | Pode apenas visualizar o catálogo e fazer comentários. |
 
-## 📋 Matriz de Permissões (Endpoints)
+## Endpoints e permissões
 
 | Método | Rota | Acesso | Status de Sucesso |
 | :--- | :--- | :--- | :--- |
-| `GET`  | `/api/v1/livros` | Público 🟢 | `200 OK` |
-| `GET`  | `/api/v1/livros/:id` | Público 🟢 | `200 OK` |
-| `POST` | `/api/v1/auth/register` | Público 🟢 | `201 Created` |
-| `POST` | `/api/v1/auth/login` | Público 🟢 | `200 OK` |
-| `POST` | `/api/v1/livros/:id/comentarios` | Autenticado (`USER` ou `ADMIN`) 🟡 | `201 Created` |
-| `POST` | `/api/v1/autores` | Exclusivo `ADMIN` 🔴 | `201 Created` |
-| `POST` | `/api/v1/livros` | Exclusivo `ADMIN` 🔴 | `201 Created` |
+| `GET`  | `/api/v1/livros` | Público | `200 OK` |
+| `GET`  | `/api/v1/livros/:id` | Público | `200 OK` |
+| `GET`  | `/api/v1/autores` | Público | `200 OK` |
+| `POST` | `/api/v1/auth/register` | Público | `201 Created` |
+| `POST` | `/api/v1/auth/login` | Público | `200 OK` |
+| `POST` | `/api/v1/livros/:id/comentarios` | Autenticado (`USER` ou `ADMIN`) | `201 Created` |
+| `POST` | `/api/v1/autores` | Exclusivo `ADMIN` | `201 Created` |
+| `POST` | `/api/v1/livros` | Exclusivo `ADMIN` | `201 Created` |
 
----
-*Projeto desenvolvido como atividade prática de segurança e controle de acessos em APIs.*
-
-## Semana 10 - Documentação Swagger/OpenAPI
-
-Requer Node.js 20 ou superior. Execute `npm ci` e `npm start`.
+## Documentação Swagger/OpenAPI
 
 - Swagger UI: `http://localhost:3000/api/docs/`
 - Contrato JSON: `http://localhost:3000/api/docs/openapi.json`
@@ -91,7 +89,7 @@ Os comentários `@openapi` junto às rotas documentam oito operações, incluind
 listagem pública de autores. `docs/openapi.js` concentra metadados, esquemas,
 parâmetros e Bearer JWT. Cada operação descreve entrada, saída e erros aplicáveis
 (400, 401, 403, 404, 409 e 500), com o corpo real `{ "erro": "mensagem" }`.
-Não foram inventadas respostas 422 que o código não implementa.
+As respostas documentadas correspondem aos códigos implementados pela API.
 
 O cadastro de livro retorna `comentarios: []`, sem `autor_nome`; esse campo é
 acrescentado nas consultas. O comentário recebe seu autor do JWT. O cadastro
@@ -103,11 +101,10 @@ O OpenAPI descreve os tipos de uso esperado; as validações em tempo de execuç
 continuam nas camadas existentes, sem validação automática de todas as entradas
 pelo contrato.
 
-### Limitações existentes do projeto base
+### Limitações conhecidas
 
 O cadastro público aceita `role`, inclusive ADMIN: um cliente pode atribuir a si
-mesmo o perfil administrativo. Essa limitação é descrita no contrato para não
-documentar uma segurança que ainda não existe. Antes de produção, restrinja o
+mesmo o perfil administrativo. Antes de produção, restrinja o
 provisionamento de ADMIN. Também há chave JWT de fallback, persistência síncrona
 em arquivo e validação de tipos incompleta. Use apenas dados fictícios neste
 ambiente acadêmico e configure `JWT_SECRET` no ambiente.
