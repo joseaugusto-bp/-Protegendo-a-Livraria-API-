@@ -46,6 +46,7 @@ router.get('/', (req, res, next) => controller.index(req, res, next));
  *   "/api/v1/livros/{id}": {
  *     "get": {
  *       "summary": "Consultar livro",
+ *       "description": "Consulta pública de um livro pelo identificador, incluindo o nome do autor e os comentários. Retorna 404 quando o livro não existe.",
  *       "tags": [
  *         "Livros"
  *       ],
